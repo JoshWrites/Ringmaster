@@ -1,0 +1,122 @@
+# ringmaster.example.yaml — annotated example configuration for Ringmaster
+#
+# Copy this file to ringmaster.yaml and edit it to match your setup.
+# Every section is optional; fields not present here use the defaults
+# documented in ringmaster/config.py.
+
+# ---------------------------------------------------------------------------
+# HTTP API server
+# ---------------------------------------------------------------------------
+server:
+  # Bind address for the Ringmaster HTTP API.
+  # Use 0.0.0.0 to accept connections from any interface (recommended when
+  # other hosts on your LAN need to submit tasks), or 127.0.0.1 to restrict
+  # to the local machine only.
+  host: "0.0.0.0"
+
+  # TCP port.  8420 is the default; change it only if you have a conflict.
+  port: 8420
+
+# ---------------------------------------------------------------------------
+# GPU configuration
+# ---------------------------------------------------------------------------
+# List all GPUs on the workstation.  Ringmaster uses the fingerprint to
+# verify it is talking to the expected hardware before dispatching tasks.
+# Omit this section entirely if you have only one GPU and don't need
+# per-card routing.
+gpus:
+  - label: "Primary Compute"
+    # role: one of compute | display | compute+display
+    role: compute
+    # prefer_for: task types this GPU should handle first when multiple
+    # GPUs are available.
+    prefer_for:
+      - chat
+      - embedding
+    fingerprint:
+      vendor: "NVIDIA"
+      model: "RTX 4090"
+      # vram_mb: total VRAM in mebibytes (24 GiB = 24576 MiB)
+      vram_mb: 24576
+      # serial and device_id are optional; omit if your driver doesn't
+      # expose them without root privileges.
+      serial: "GPU-abc123def456"
+      device_id: "10de:2684"
+
+# ---------------------------------------------------------------------------
+# Ollama backend
+# ---------------------------------------------------------------------------
+ollama:
+  # Base URL of the Ollama HTTP API running on the workstation.
+  # If Ringmaster runs on the same machine as Ollama, keep localhost.
+  host: "http://localhost:11434"
+
+# ---------------------------------------------------------------------------
+# Notifications
+# ---------------------------------------------------------------------------
+# Ringmaster sends notifications when it needs your approval to start a task
+# while the workstation is in use.
+notifications:
+  # backend: desktop | none
+  # 'desktop' uses libnotify (D-Bus) — works on GNOME, KDE, and most DEs.
+  backend: desktop
+  # fallback_backend fires when the primary backend fails, e.g. when the
+  # display server is unavailable.
+  fallback_backend: desktop
+  # backend-specific options (none needed for the desktop backend)
+  config: {}
+
+# ---------------------------------------------------------------------------
+# Power management
+# ---------------------------------------------------------------------------
+power:
+  # wake_method: none | wol | command
+  # 'none' means Ringmaster will not attempt to wake the workstation.
+  wake_method: none
+
+  # shell commands run as the agent user — all optional
+  # sleep_command: "systemctl suspend"
+  # display_off_command: "xset dpms force off"
+  # lock_command: "loginctl lock-session"
+  # gpu_compute_profile_command: "nvidia-smi -pl 200"
+
+# ---------------------------------------------------------------------------
+# Idle detection
+# ---------------------------------------------------------------------------
+idle:
+  # detection_method: dbus | xprintidle | none
+  # 'dbus' queries org.freedesktop.ScreenSaver — the most reliable method
+  # on modern Linux desktops with a running session manager.
+  detection_method: dbus
+
+  # Seconds of inactivity before the session is considered idle.
+  idle_threshold_seconds: 300  # 5 minutes
+
+  # When idle, approve tasks automatically without a notification popup.
+  auto_approve_when_idle: true
+
+  # When the session is active, wait this many seconds for manual approval
+  # before auto-approving.  Set to 0 to require explicit approval always.
+  auto_approve_timeout_seconds: 60
+
+# ---------------------------------------------------------------------------
+# Task queue
+# ---------------------------------------------------------------------------
+queue:
+  # Maximum tasks that can wait in the queue at once.
+  # Submitting when full returns HTTP 429.
+  max_queue_depth: 100
+
+  # Priority assigned to tasks that don't specify one (scale: 1 high – 5 low).
+  default_priority: 3
+
+  # Seconds of inactivity before a client session's reserved slot is released.
+  session_idle_timeout_seconds: 600  # 10 minutes
+
+# ---------------------------------------------------------------------------
+# Authentication
+# ---------------------------------------------------------------------------
+auth:
+  # Path to the JSON file containing API bearer tokens.
+  # Relative paths are resolved from the directory containing this config file.
+  token_file: "tokens.json"
