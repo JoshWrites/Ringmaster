@@ -12,7 +12,6 @@ import sqlite3
 import time
 from datetime import datetime, timedelta, timezone
 
-import pytest
 
 from ringmaster import db
 
@@ -270,7 +269,7 @@ class TestQueueOrdering:
         """get_next_queued_task must return the task with the lowest priority number."""
         conn = make_connection()
         now = utc_now()
-        low_prio_id = db.insert_task(
+        db.insert_task(
             conn, task_type="generate", model="llama3",
             client_id="c1", submitted_at=now, priority=5,
         )
@@ -289,7 +288,7 @@ class TestQueueOrdering:
         conn = make_connection()
         now = utc_now()
         # Insert the no-deadline task first to rule out FIFO as the reason
-        no_deadline_id = db.insert_task(
+        db.insert_task(
             conn, task_type="generate", model="llama3",
             client_id="c1", submitted_at=now, priority=3,
         )
@@ -315,7 +314,7 @@ class TestQueueOrdering:
         # Add a tiny delay so the timestamps differ
         time.sleep(0.01)
         later = utc_now()
-        t2 = db.insert_task(
+        db.insert_task(
             conn, task_type="generate", model="llama3",
             client_id="c1", submitted_at=later, priority=3,
         )

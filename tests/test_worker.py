@@ -15,7 +15,7 @@ behaviour precisely and to prevent regressions as the worker evolves.
 from __future__ import annotations
 
 import sqlite3
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

@@ -194,7 +194,7 @@ def submit(
     resp = httpx.post(f"{host}/tasks", headers=_headers(token), json=payload)
     body = _require_ok(resp)
 
-    click.echo(f"Task submitted.")
+    click.echo("Task submitted.")
     click.echo(f"  ID:     {body['id']}")
     click.echo(f"  Status: {body['status']}")
 

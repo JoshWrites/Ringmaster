@@ -9,13 +9,11 @@ be unit-tested without hardware.  The priority order for matching is:
 
 from __future__ import annotations
 
-import pytest
 
 from ringmaster.config import GpuConfig, GpuFingerprint
 from ringmaster.gpu.detect import DetectedGpu
 from ringmaster.gpu.fingerprint import (
     InventoryResult,
-    MatchedGpu,
     match_gpu_to_config,
     resolve_inventory,
 )
