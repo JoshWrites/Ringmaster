@@ -62,6 +62,20 @@ def _require_ok(response: httpx.Response) -> dict[str, Any]:
     return response.json()  # type: ignore[return-value]
 
 
+def _require_token(ctx: click.Context) -> str:
+    """Return the bearer token from the CLI context, or exit with a helpful error.
+
+    Commands that talk to the server need a token, but local-only commands like
+    ``init`` do not.  Making --token optional at the group level and checking it
+    per-command gives us both: ``ringmaster init`` works without a token, but
+    ``ringmaster status`` tells you exactly what's missing.
+    """
+    token = ctx.obj.get("token")
+    if not token:
+        _die("Missing --token or RINGMASTER_TOKEN environment variable.")
+    return token
+
+
 # ---------------------------------------------------------------------------
 # Top-level group
 # ---------------------------------------------------------------------------
@@ -77,7 +91,7 @@ def _require_ok(response: httpx.Response) -> dict[str, Any]:
 @click.option(
     "--token",
     envvar="RINGMASTER_TOKEN",
-    required=True,
+    default=None,
     help="Bearer token for API authentication (env: RINGMASTER_TOKEN).",
 )
 @click.pass_context
@@ -100,7 +114,7 @@ def cli(ctx: click.Context, host: str, token: str) -> None:
 def status(ctx: click.Context) -> None:
     """Show current system state: workload, queue depth, and user presence."""
     host = ctx.obj["host"]
-    token = ctx.obj["token"]
+    token = _require_token(ctx)
 
     resp = httpx.get(f"{host}/status", headers=_headers(token))
     body = _require_ok(resp)
@@ -128,7 +142,7 @@ def status(ctx: click.Context) -> None:
 def queue(ctx: click.Context, status_filter: str | None) -> None:
     """List tasks in the queue."""
     host = ctx.obj["host"]
-    token = ctx.obj["token"]
+    token = _require_token(ctx)
 
     params: dict[str, str] = {}
     if status_filter:
@@ -177,7 +191,7 @@ def submit(
 ) -> None:
     """Submit a new task to the queue."""
     host = ctx.obj["host"]
-    token = ctx.obj["token"]
+    token = _require_token(ctx)
 
     payload: dict[str, Any] = {
         "task_type": "generate",
@@ -209,7 +223,7 @@ def submit(
 def pause(ctx: click.Context) -> None:
     """Pause the queue — tasks are accepted but not dispatched."""
     host = ctx.obj["host"]
-    token = ctx.obj["token"]
+    token = _require_token(ctx)
 
     resp = httpx.post(f"{host}/queue/pause", headers=_headers(token))
     _require_ok(resp)
@@ -227,7 +241,7 @@ def pause(ctx: click.Context) -> None:
 def resume(ctx: click.Context) -> None:
     """Resume the queue — dispatch resumes from where it was paused."""
     host = ctx.obj["host"]
-    token = ctx.obj["token"]
+    token = _require_token(ctx)
 
     resp = httpx.post(f"{host}/queue/resume", headers=_headers(token))
     _require_ok(resp)
@@ -249,7 +263,7 @@ def drain(ctx: click.Context) -> None:
     ``ringmaster status`` to poll until queue_depth reaches zero.
     """
     host = ctx.obj["host"]
-    token = ctx.obj["token"]
+    token = _require_token(ctx)
 
     resp = httpx.post(f"{host}/queue/drain", headers=_headers(token))
     body = _require_ok(resp)
@@ -270,7 +284,7 @@ def drain(ctx: click.Context) -> None:
 def cancel_current(ctx: click.Context) -> None:
     """Cancel the task that is currently running."""
     host = ctx.obj["host"]
-    token = ctx.obj["token"]
+    token = _require_token(ctx)
 
     resp = httpx.post(f"{host}/tasks/current/cancel", headers=_headers(token))
 
@@ -295,7 +309,7 @@ def cancel_current(ctx: click.Context) -> None:
 def gpu(ctx: click.Context) -> None:
     """List GPUs known to this Ringmaster instance."""
     host = ctx.obj["host"]
-    token = ctx.obj["token"]
+    token = _require_token(ctx)
 
     resp = httpx.get(f"{host}/gpus", headers=_headers(token))
     gpus = _require_ok(resp)
