@@ -29,4 +29,6 @@ htmlcov/
 tokens.json
 ringmaster.yaml
 *.db
+*.db-shm
+*.db-wal
 *.sqlite3
