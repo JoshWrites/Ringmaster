@@ -1,0 +1,14 @@
+[Unit]
+Description=Ringmaster AI Task Orchestrator
+After=network-online.target ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 -m ringmaster.server.run -c %h/.config/ringmaster/ringmaster.yaml
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target
