@@ -44,7 +44,7 @@ class MatchedGpu:
     """Human-readable name from the config, used in logs and API responses."""
 
     role: str
-    """Intended use from the config: 'compute', 'display', or 'compute+display'."""
+    """Intended use from the config: 'compute', 'gaming', or 'both'."""
 
     prefer_for: list[str]
     """Task types this GPU should be preferred for (from config)."""

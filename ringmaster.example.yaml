@@ -26,7 +26,7 @@ server:
 # per-card routing.
 gpus:
   - label: "Primary Compute"
-    # role: one of compute | display | compute+display
+    # role: one of compute | gaming | both
     role: compute
     # prefer_for: task types this GPU should handle first when multiple
     # GPUs are available.

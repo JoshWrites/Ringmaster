@@ -79,14 +79,14 @@ def test_detect_gpus_parses_rocm_smi_output() -> None:
 
     card0 = gpus[0]
     assert card0.vendor == "AMD"
-    assert card0.model == "AMD Radeon RX 7900 XTX"
+    assert card0.model == "Radeon RX 7900 XTX"
     # 25753026560 bytes // 1048576 = 24545 MB
     assert card0.vram_mb == 25753026560 // (1024 * 1024)
     assert card0.serial == "0x1234abcd5678ef01"
 
     card1 = gpus[1]
     assert card1.vendor == "AMD"
-    assert card1.model == "AMD Radeon RX 7900 GRE"
+    assert card1.model == "Radeon RX 7900 GRE"
     assert card1.vram_mb == 17179869184 // (1024 * 1024)
     # 'N/A' unique ID should be normalised to empty string
     assert card1.serial == ""

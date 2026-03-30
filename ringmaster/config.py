@@ -59,7 +59,7 @@ class GpuConfig(BaseModel):
     """Configuration for a single GPU on the workstation.
 
     A workstation may have multiple GPUs with different roles — e.g. one card
-    dedicated to the display and one for compute-only inference.
+    dedicated to gaming and one for compute-only inference.
     """
 
     label: str = Field(
@@ -69,7 +69,7 @@ class GpuConfig(BaseModel):
         default="compute",
         description=(
             "Intended use for this GPU. "
-            "One of 'compute', 'display', or 'compute+display'."
+            "One of 'compute', 'gaming', or 'both'."
         ),
     )
     prefer_for: list[str] = Field(

@@ -111,8 +111,13 @@ def detect_gpus_rocm() -> list[DetectedGpu]:
         if not isinstance(card, dict):
             continue
 
-        raw_vendor = card.get("Card vendor", "")
-        model = card.get("Card model") or card.get("Card series") or ""
+        raw_vendor = card.get("Card Vendor", card.get("Card vendor", ""))
+        raw_model = card.get("Card Series") or card.get("Card series") or card.get("Card Model") or card.get("Card model") or ""
+        # Some drivers prefix the model with the vendor name (e.g. "AMD Radeon
+        # RX 5700 XT") while others don't ("Radeon RX 7900 XTX").  Strip the
+        # prefix when present so the model field is consistent.
+        vendor = _normalise_vendor(raw_vendor)
+        model = raw_model.removeprefix(f"{vendor} ").strip() if raw_model else ""
         vram_bytes_str = card.get("VRAM Total Memory (B)", "0")
         unique_id = card.get("Unique ID", "")
 
@@ -127,7 +132,7 @@ def detect_gpus_rocm() -> list[DetectedGpu]:
 
         gpus.append(
             DetectedGpu(
-                vendor=_normalise_vendor(raw_vendor),
+                vendor=vendor,
                 model=model,
                 vram_mb=vram_mb,
                 serial=serial,
