@@ -331,14 +331,19 @@ def gpu(ctx: click.Context) -> None:
 
 
 @cli.command()
-def init() -> None:
-    """Interactively generate a ringmaster.yaml configuration file.
+@click.option(
+    "--config", "config_path",
+    default="ringmaster.yaml",
+    help="Output path for the generated config file.",
+)
+def init(config_path: str) -> None:
+    """Interactively generate a Ringmaster configuration file.
 
     Detects GPUs on the local machine and prompts for a human-readable label
-    and role for each one.  Writes the result to ringmaster.yaml in the current
-    directory.
+    and role for each one.  Writes the result to the specified path (default:
+    ringmaster.yaml in the current directory).
 
-    This command intentionally does NOT accept --host/--token because it runs
+    This command intentionally does NOT require --host/--token because it runs
     locally before any server is configured — it is the command you run to
     *create* the config that the server will use.
     """
@@ -368,7 +373,7 @@ def init() -> None:
         role = click.prompt(
             "  Role",
             default="compute",
-            type=click.Choice(["compute", "display", "compute+display"], case_sensitive=False),
+            type=click.Choice(["compute", "gaming", "both"], case_sensitive=False),
         )
 
         entry: dict[str, Any] = {
@@ -389,9 +394,8 @@ def init() -> None:
         click.echo()
 
     config: dict[str, Any] = {"gpus": gpu_configs}
-    out_path = "ringmaster.yaml"
 
-    with open(out_path, "w") as fh:
+    with open(config_path, "w") as fh:
         yaml.dump(config, fh, default_flow_style=False, sort_keys=False)
 
-    click.echo(f"Configuration written to {out_path}")
+    click.echo(f"Configuration written to {config_path}")

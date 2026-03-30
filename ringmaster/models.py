@@ -285,7 +285,7 @@ class GpuStatusResponse(BaseModel):
 
     label: str = Field(description="Human-readable GPU label from config.")
     role: str = Field(
-        description="Configured role for this GPU, e.g. 'compute' or 'display'.",
+        description="Configured role for this GPU: 'compute', 'gaming', or 'both'.",
     )
     vram_mb: int = Field(description="Total VRAM in mebibytes as detected at runtime.")
     current_model: str | None = Field(
