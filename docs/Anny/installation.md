@@ -4,19 +4,19 @@ Ringmaster has two pieces: a **server** that runs on the GPU workstation, and a 
 
 ## What you need
 
-- **Git** and **Python 3.11+** — this is all you need if you're just installing the CLI on a laptop to submit tasks remotely
+- **Git** and **Python 3.11 or later** — this is all you need if you're installing the CLI on a laptop to submit tasks remotely
 
 For running the server on the workstation, you also need:
 
-- **Ollama** installed and running — Ringmaster dispatches tasks to it, it doesn't replace it
-- **Linux with systemd** — sleep inhibition, service management, and D-Bus idle detection all depend on it
-- **GPU tools** — `rocm-smi` for AMD or `nvidia-smi` for NVIDIA, so Ringmaster can detect your hardware
+- **Ollama** installed and running — Ringmaster dispatches tasks to Ollama but doesn't replace it
+- **Linux with systemd** — sleep inhibition, service management, and D-Bus idle detection depend on it
+- **GPU tools** — `rocm-smi` for AMD or `nvidia-smi` for NVIDIA, so that Ringmaster can detect your hardware
 
 ## Install
 
 ### Virtual environment (recommended)
 
-Don't install into your system Python. Use a venv:
+Don't install into your system Python. Instead, use a virtual environment:
 
 ```bash
 git clone https://github.com/JoshWrites/Ringmaster.git
@@ -38,7 +38,7 @@ If you only need the `ringmaster` CLI and don't plan to run the server from this
 pipx install git+https://github.com/JoshWrites/Ringmaster.git
 ```
 
-> **Note:** pipx is designed for CLI tools, not long-running daemons. It'll give you the `ringmaster` command, but if you're running the server (especially under systemd), use the venv approach above.
+> **Note:** pipx is designed for CLI tools, not long-running daemons. It gives you the `ringmaster` command, but if you're running the server (especially under systemd), use the virtual environment approach described earlier.
 
 ### Verify
 
@@ -58,7 +58,7 @@ If your workstation has an AMD or NVIDIA GPU with the appropriate tools installe
 ringmaster init
 ```
 
-This scans your hardware, asks you to label each GPU, and writes `ringmaster.yaml` in the current directory. To write to a different path:
+This command scans your hardware, asks you to label each GPU, and writes `ringmaster.yaml` in the current directory. To write to a different path:
 
 ```bash
 ringmaster init --config <path-to-your-config>/ringmaster.yaml
@@ -78,9 +78,9 @@ gpus:
       vram_mb: 24576           # total VRAM in MiB
 ```
 
-Replace the values with your actual hardware. `vendor` and `model` should match what your GPU tools report; `vram_mb` is total VRAM in mebibytes. `role` tells Ringmaster how the card is used: `compute` for inference only, `gaming` for the display/gaming card, or `both`.
+Replace the values with your actual hardware. The `vendor` and `model` values should match what your GPU tools report. The `vram_mb` value is the total VRAM in mebibytes. The `role` value tells Ringmaster how the card is used: `compute` for inference only, `gaming` for the display or gaming card, or `both`.
 
-Every other setting has a sensible default. The full configuration reference is in [configuration.md](configuration.md), but to get running you only need the `gpus` block.
+Every other setting has a sensible default. The full configuration reference is in [configuration.md](configuration.md), but to get running, you only need the `gpus` block.
 
 ### Ollama
 
@@ -113,9 +113,9 @@ print(f'Your token: {token}')
 "
 ```
 
-Save that token — it's shown once and never stored in plaintext. Only the SHA-256 hash goes into `tokens.json`.
+Save that token. It's shown once and never stored in plaintext. Only the SHA-256 hash goes into `tokens.json`.
 
-The `token_file` setting in `ringmaster.yaml` defaults to `"tokens.json"`. Relative paths resolve from the directory containing `ringmaster.yaml` — so if your config is at `~/.config/ringmaster/ringmaster.yaml`, the server looks for `~/.config/ringmaster/tokens.json`. Make sure the token file is next to your config, or use an absolute path in the config.
+The `token_file` setting in `ringmaster.yaml` defaults to `"tokens.json"`. Relative paths resolve from the directory that contains `ringmaster.yaml`. For example, if your config is at `~/.config/ringmaster/ringmaster.yaml`, the server looks for `~/.config/ringmaster/tokens.json`. Make sure the token file is next to your config, or use an absolute path in the config.
 
 Set it in your environment:
 
@@ -144,7 +144,7 @@ The response contains the new client's token:
 {"client_id": "<new-client-id>", "token": "a1b2c3d4..."}
 ```
 
-Distribute that token to the client securely — it won't be shown again.
+Distribute that token to the client securely. It won't be shown again.
 
 ## Start the server
 
@@ -178,7 +178,7 @@ Queue paused: False
 
 ### Run as a systemd service
 
-The included `ringmaster.service` unit uses `/usr/bin/python3` — the system Python. But if you installed Ringmaster in a venv (which you should have), the system Python doesn't know about it. You need to update the service unit to point at your venv.
+The included `ringmaster.service` unit uses `/usr/bin/python3`, the system Python. If you installed Ringmaster in a virtual environment (which you should have), the system Python doesn't know about it. You need to update the service unit to point at your virtual environment.
 
 ```bash
 # Copy your config and tokens to the standard location
@@ -210,9 +210,9 @@ Environment=PYTHONUNBUFFERED=1
 WantedBy=default.target
 ```
 
-Replace `<path-to-your-clone>` with the absolute path to your Ringmaster repo (e.g. `/home/anny/Projects/Repos/Ringmaster`).
+Replace `<path-to-your-clone>` with the absolute path to your Ringmaster repo (for example, `/home/anny/Projects/Repos/Ringmaster`).
 
-If you have a Ringmaster server already running manually (e.g. from an earlier `python3 -m ringmaster.server.run`), stop it first (Ctrl+C in that terminal) — otherwise the service will fail because port 8420 is already in use.
+If you have a Ringmaster server already running manually (for example, from an earlier `python3 -m ringmaster.server.run`), stop it first by pressing Ctrl+C in that terminal. Otherwise, the service fails because port 8420 is already in use.
 
 Then enable and start it:
 
@@ -221,7 +221,7 @@ systemctl --user daemon-reload
 systemctl --user enable --now ringmaster
 ```
 
-Check it's running:
+Verify that the service is running:
 
 ```bash
 systemctl --user status ringmaster
@@ -272,13 +272,13 @@ export RINGMASTER_TOKEN=<your-token>
 ringmaster status
 ```
 
-> **Note:** The CLI reads `RINGMASTER_TOKEN` from the environment, but `RINGMASTER_HOST` isn't wired up as an `envvar` in Click yet. The `--host` flag works; the env var is aspirational until someone adds `envvar="RINGMASTER_HOST"` to the Click option.
+> **Note:** The CLI reads `RINGMASTER_TOKEN` from the environment, but `RINGMASTER_HOST` isn't wired up as an `envvar` in Click yet. The `--host` flag works. The environment variable is aspirational until someone adds `envvar="RINGMASTER_HOST"` to the Click option.
 
 ## Troubleshooting
 
 **"No GPUs detected" during `ringmaster init`**
 
-Ringmaster looks for `rocm-smi` (AMD) and `nvidia-smi` (NVIDIA). If you have a GPU but the tool isn't in your PATH, install the appropriate driver package. For Intel integrated graphics, skip `init` and write `ringmaster.yaml` by hand — see [Manual configuration](#manual-configuration-no-discrete-gpu-or-custom-setup) above.
+Ringmaster looks for `rocm-smi` (AMD) and `nvidia-smi` (NVIDIA). If you have a GPU but the tool isn't in your PATH, install the appropriate driver package. For Intel integrated graphics, skip `init` and write `ringmaster.yaml` by hand. For more information, see [Manual configuration](#manual-configuration-no-discrete-gpu-or-custom-setup).
 
 ---
 
@@ -296,13 +296,13 @@ Check that Ollama is running (`curl http://localhost:11434`) and that you've pul
 
 **"externally-managed-environment" when running `pip install`**
 
-Your system Python is managed by your OS package manager. Use a virtual environment — see [Install](#virtual-environment-recommended) above.
+Your system Python is managed by your OS package manager. Use a virtual environment. For more information, see [Virtual environment (recommended)](#virtual-environment-recommended).
 
 ---
 
 **Server can't find `ringmaster.yaml`**
 
-The server looks in the current directory by default. Either `cd` to the directory containing it, or pass `-c <path-to-your-config>/ringmaster.yaml`.
+The server looks in the current directory by default. Either change to the directory that contains it, or pass `-c <path-to-your-config>/ringmaster.yaml`.
 
 ## Uninstall
 
@@ -314,7 +314,7 @@ Delete the cloned repo (which includes the venv):
 rm -rf <path-to-your-clone>
 ```
 
-If you set up the systemd service, stop it first, then remove the config directory. Note that `~/.config/ringmaster/` contains the database (`ringmaster.db`) with your task history — this deletes that too.
+If you set up the systemd service, stop it first, and then remove the config directory. The `~/.config/ringmaster/` directory contains the database (`ringmaster.db`) with your task history. Deleting it removes that history as well.
 
 ```bash
 systemctl --user disable --now ringmaster
@@ -329,4 +329,4 @@ rm -rf ~/.config/ringmaster
 pipx uninstall ringmaster
 ```
 
-This removes the CLI. Any config files or token files you created locally are not affected — delete those manually if you don't need them.
+This command removes the CLI. Any config files or token files you created locally aren't affected. Delete those manually if you don't need them.
