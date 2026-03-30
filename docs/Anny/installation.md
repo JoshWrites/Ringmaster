@@ -58,7 +58,11 @@ If your workstation has an AMD or NVIDIA GPU with the appropriate tools installe
 ringmaster init
 ```
 
-This scans your hardware, asks you to label each GPU, and writes a `ringmaster.yaml` in the current directory.
+This scans your hardware, asks you to label each GPU, and writes `ringmaster.yaml` in the current directory. To write to a different path:
+
+```bash
+ringmaster init --config <path-to-your-config>/ringmaster.yaml
+```
 
 ### Manual configuration (no discrete GPU, or custom setup)
 
@@ -67,14 +71,14 @@ If `ringmaster init` doesn't detect your hardware — you're on Intel integrated
 ```yaml
 gpus:
   - label: primary
-    role: compute
+    role: compute              # compute, gaming, or both
     fingerprint:
       vendor: NVIDIA           # NVIDIA, AMD, or Intel
       model: RTX 4090          # as reported by nvidia-smi or rocm-smi
       vram_mb: 24576           # total VRAM in MiB
 ```
 
-Replace the values with your actual hardware. `vendor` and `model` should match what your GPU tools report; `vram_mb` is total VRAM in mebibytes.
+Replace the values with your actual hardware. `vendor` and `model` should match what your GPU tools report; `vram_mb` is total VRAM in mebibytes. `role` tells Ringmaster how the card is used: `compute` for inference only, `gaming` for the display/gaming card, or `both`.
 
 Every other setting has a sensible default. The full configuration reference is in [configuration.md](configuration.md), but to get running you only need the `gpus` block.
 
