@@ -23,15 +23,34 @@ Ringmaster sits between your AI tools and [Ollama](https://ollama.com), managing
 ## Quick start
 
 ```bash
-# Install
-pip install -e ".[dev]"
+# Install in a virtual environment
+git clone https://github.com/JoshWrites/Ringmaster.git
+cd Ringmaster
+python3 -m venv .venv
+source .venv/bin/activate
+pip install .
 
 # Detect GPUs and create config
 ringmaster init
 
+# Bootstrap your first API token
+python3 -c "
+from ringmaster.server.auth import AuthManager
+mgr = AuthManager()
+token = mgr.register('my-workstation')
+mgr.save('tokens.json')
+print(f'Your token: {token}')
+"
+
 # Start the server
-python -m ringmaster.server.run -c ringmaster.yaml
+python3 -m ringmaster.server.run
+
+# In another terminal (with the venv activated)
+export RINGMASTER_TOKEN=<your-token>
+ringmaster status
 ```
+
+For the full setup walkthrough — including manual GPU config, systemd service, remote access, and troubleshooting — see [docs/Anny/installation.md](docs/Anny/installation.md).
 
 ## Configuration
 
@@ -107,7 +126,7 @@ All endpoints except `/health` require a bearer token.
 
 - Python 3.11+
 - [Ollama](https://ollama.com) running on the workstation
-- AMD GPU with ROCm (NVIDIA support planned)
+- `rocm-smi` (AMD) or `nvidia-smi` (NVIDIA) for GPU detection
 - Linux (systemd for sleep inhibition, D-Bus for notifications)
 
 ## License
