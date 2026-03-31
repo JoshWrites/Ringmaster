@@ -41,12 +41,18 @@ from ringmaster.server.routes import auth, queue, sessions, status, tasks
 # ---------------------------------------------------------------------------
 
 
+_LOCALHOST_ADDRS = frozenset({"127.0.0.1", "::1"})
+
+
 class BearerAuthMiddleware(BaseHTTPMiddleware):
     """Reject requests that lack a valid bearer token.
 
     Design choices:
       - /health is explicitly skipped so liveness probes from external monitors
         (e.g. uptime-kuma, Kubernetes readiness checks) work without credentials.
+      - Localhost connections (127.0.0.1 / ::1) skip auth entirely.  Ringmaster
+        is a single-machine daemon; local clients like NetIntel should not need
+        out-of-band token provisioning to use the API.
       - We read the AuthManager from the deps module rather than capturing it in
         __init__, which means the middleware always sees the current AuthManager
         even if set_deps() is called after the middleware is registered.
@@ -56,8 +62,13 @@ class BearerAuthMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        """Verify the bearer token on every request except /health."""
+        """Verify the bearer token on every request except /health and localhost."""
         if request.url.path == "/health":
+            return await call_next(request)
+
+        # Local clients (same machine) skip auth — Ringmaster is single-machine.
+        client_host = request.client.host if request.client else None
+        if client_host in _LOCALHOST_ADDRS:
             return await call_next(request)
 
         auth_header = request.headers.get("Authorization", "")

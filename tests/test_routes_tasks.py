@@ -98,14 +98,27 @@ async def test_get_nonexistent_task(client: AsyncClient) -> None:
     assert resp.status_code == 404
 
 
-async def test_unauthenticated_request(tmp_path: Path) -> None:
-    """A request with no Authorization header should return 401."""
+async def test_unauthenticated_request_from_remote(tmp_path: Path) -> None:
+    """A request with no Authorization header from a remote IP should return 401."""
     config_path = tmp_path / "ringmaster.yaml"
     config_path.write_text("")
 
     app, _ = await create_app(config_path, db_path=tmp_path / "test.db")
 
-    transport = ASGITransport(app=app)
+    transport = ASGITransport(app=app, client=("192.168.1.100", 12345))
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.get("/tasks")
     assert resp.status_code == 401
+
+
+async def test_localhost_skips_auth(tmp_path: Path) -> None:
+    """Requests from localhost should bypass auth — no token needed."""
+    config_path = tmp_path / "ringmaster.yaml"
+    config_path.write_text("")
+
+    app, _ = await create_app(config_path, db_path=tmp_path / "test.db")
+
+    transport = ASGITransport(app=app, client=("127.0.0.1", 12345))
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.get("/tasks")
+    assert resp.status_code == 200
