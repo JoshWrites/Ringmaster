@@ -36,3 +36,4 @@ ringmaster.yaml
 # MkDocs build output
 site/
 .venv-docs/
+Ringmaster/
