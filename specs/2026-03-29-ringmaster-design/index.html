@@ -1,0 +1,1960 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="GPU workstation AI task orchestrator for home networks">
+      
+      
+      
+        <link rel="canonical" href="https://joshwrites.github.io/Ringmaster/specs/2026-03-29-ringmaster-design/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Ringmaster Design Specification - Ringmaster</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ringmaster-design-specification" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Ringmaster" class="md-header__button md-logo" aria-label="Ringmaster" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Ringmaster
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Ringmaster Design Specification
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="deep-purple" data-md-color-accent="amber"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/JoshWrites/Ringmaster" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JoshWrites/Ringmaster
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../quickstart/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quick Start
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../guide/installation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../architecture/overview/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../reference/api/" class="md-tabs__link">
+          
+  
+  
+  Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Ringmaster" class="md-nav__button md-logo" aria-label="Ringmaster" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Ringmaster
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/JoshWrites/Ringmaster" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    JoshWrites/Ringmaster
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/tasks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tasks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    REST API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/cli/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/config/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#problem-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Problem Statement
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#components" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Components
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#communication-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Communication Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#server-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#client-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gpu-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPU Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GPU Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#discovery-and-fingerprinting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Discovery and Fingerprinting
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gpu-allocation-phase-1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPU Allocation (Phase 1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gpu-allocation-phase-2-designed-for-not-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPU Allocation (Phase 2 — designed for, not implemented)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gpu-allocation-future-designed-for-not-implemented" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPU Allocation (Future — designed for, not implemented)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#task-system" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task System
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Task System">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#task-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#task-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Task Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Priority
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#queue-controls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Queue Controls
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#client-communication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Client Communication
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Client Communication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#webhook-callbacks-primary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Webhook Callbacks (primary)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#polling-fallback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Polling (fallback)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#session-queries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Session Queries
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rest-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        REST API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#power-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Power Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Power Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#workstation-states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Workstation States
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Wake
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sleep-inhibition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sleep Inhibition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#display-and-lock" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Display and Lock
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sleep-after-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sleep After Work
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#gpu-power-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GPU Power State
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#network-continuity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Network Continuity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#notifications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notifications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Notifications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#desktop-user-at-the-workstation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Desktop (user at the workstation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#push-user-away-from-the-workstation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Push (user away from the workstation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fallback-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fallback Behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Storage
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase Boundaries
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase Boundaries">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-mvp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1 (MVP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#future" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Future
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#technical-decisions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Technical Decisions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Non-Goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ringmaster-design-specification">Ringmaster Design Specification</h1>
+<p><strong>Date:</strong> 2026-03-29
+<strong>Status:</strong> Draft
+<strong>Repo:</strong> ~/Documents/Repos/Ringmaster</p>
+<h2 id="overview">Overview</h2>
+<p>Ringmaster turns a personal workstation into a shared AI compute node for a home
+network — while respecting that someone might be using it to game, browse, or work.</p>
+<p>It is a two-component system: a server daemon on the workstation and a client app
+on any machine that needs AI compute. A CLI provides direct access for scripts and
+power users. All three interfaces consume the same REST API.</p>
+<p>Ringmaster is designed for public release. It is configuration-driven with no
+hardcoded hardware, services, or network topology.</p>
+<h2 id="problem-statement">Problem Statement</h2>
+<p>A home network may have one powerful GPU workstation and many devices that need AI
+inference: security scanners, code companions, financial tools, storage indexers.
+Today there is no way to:</p>
+<ul>
+<li>Queue and prioritize inference requests from multiple clients</li>
+<li>Negotiate GPU access with a human user at the keyboard</li>
+<li>Prevent sleep/shutdown from killing a running inference task</li>
+<li>Wake the machine for scheduled AI work and sleep it when done</li>
+<li>Give interactive users (IDE coding assistants) session-based GPU reservation</li>
+<li>Do all of this without modifying every individual AI tool</li>
+</ul>
+<h2 id="architecture">Architecture</h2>
+<h3 id="components">Components</h3>
+<p><strong>1. Ringmaster Server</strong> (workstation daemon)</p>
+<p>Always-on systemd service. Responsibilities:</p>
+<ul>
+<li>FastAPI REST API for task submission, queue management, status</li>
+<li>SQLite task queue with priority ordering</li>
+<li>Ollama instance management (model loading, swapping, GPU targeting)</li>
+<li>GPU inventory discovery and fingerprint-based identification</li>
+<li>User presence detection via D-Bus/systemd-logind</li>
+<li>Desktop notifications with action buttons via D-Bus</li>
+<li>Sleep/shutdown inhibition via systemd inhibitor locks</li>
+<li>Display blanking and screen lock when deferring sleep</li>
+<li>Webhook delivery for task completion</li>
+<li>Push notifications via configurable backend (HA in phase 1)</li>
+<li>Queue pause/resume controls</li>
+</ul>
+<p><strong>2. Ringmaster Client App</strong> (any OS)</p>
+<p>Lightweight system tray daemon for interactive users. Responsibilities:</p>
+<ul>
+<li>Local Ollama-compatible HTTP proxy (tools point at localhost, client handles the rest)</li>
+<li>Session management against the Ringmaster server</li>
+<li>Desktop notifications from Ringmaster (queue position, delays, errors)</li>
+<li>Web UI on a configurable local port for queue status and settings</li>
+<li>Authentication against the Ringmaster server</li>
+</ul>
+<p>Cross-platform: Python with <code>pystray</code> (tray), <code>desktop-notifier</code> (notifications),
+FastAPI (proxy + web UI). Packaged via pip or PyInstaller.</p>
+<p><strong>3. CLI</strong></p>
+<p>Thin wrapper over the REST API. Ships with both server and client installs.
+Available on any machine that can reach the server over the network.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>ringmaster submit --model mistral-nemo:12b --prompt &quot;...&quot; --priority 1
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>ringmaster queue
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>ringmaster status
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>ringmaster gpu
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>ringmaster pause
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>ringmaster resume
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>ringmaster cancel-current
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>ringmaster --host 10.100.102.181 queue
+</code></pre></div>
+<h3 id="communication-flow">Communication Flow</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>[AI tool on client] → localhost:11434 (client app Ollama proxy)
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    → Ringmaster REST API (workstation, authenticated)
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        → Ollama (actual inference)
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>            → result back through the chain
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>            → webhook to callback URL on completion
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>[Server script] → Ringmaster REST API directly (no client app needed)
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    → same path from there
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>[Human at terminal] → ringmaster CLI → REST API → same path
+</code></pre></div>
+<h2 id="configuration">Configuration</h2>
+<p>All configuration is file-based. No hardcoded values.</p>
+<h3 id="server-configuration">Server Configuration</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># ringmaster.yaml</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nt">server</span><span class="p">:</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0.0.0.0&quot;</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8420</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="nt">gpus</span><span class="p">:</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;primary&quot;</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;compute&quot;</span><span class="w">           </span><span class="c1"># compute, gaming, both</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">prefer_for</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;large_models&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;default&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nt">fingerprint</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span><span class="w">           </span><span class="c1"># populated by `ringmaster init`</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">label</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secondary&quot;</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;both&quot;</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">    </span><span class="nt">prefer_for</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;small_models&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;fallback&quot;</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">fingerprint</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="nt">ollama</span><span class="p">:</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://localhost:11434&quot;</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a><span class="nt">notifications</span><span class="p">:</span>
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a><span class="w">  </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;homeassistant&quot;</span><span class="w">    </span><span class="c1"># desktop, homeassistant, ntfy, pushover, matrix</span>
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a><span class="w">  </span><span class="nt">config</span><span class="p">:</span>
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a><span class="w">    </span><span class="nt">ha_url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://ha.local:8123&quot;</span>
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="w">    </span><span class="nt">ha_token_env</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;HA_TOKEN&quot;</span>
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="w">  </span><span class="nt">fallback_backend</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;desktop&quot;</span><span class="w"> </span><span class="c1"># used when primary is unreachable</span>
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="nt">power</span><span class="p">:</span>
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="w">  </span><span class="nt">wake_method</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;wol&quot;</span><span class="w">          </span><span class="c1"># wol, ipmi, smart_plug, none</span>
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="w">  </span><span class="nt">sleep_command</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;systemctl</span><span class="nv"> </span><span class="s">suspend&quot;</span>
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">  </span><span class="nt">display_off_command</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;xset</span><span class="nv"> </span><span class="s">dpms</span><span class="nv"> </span><span class="s">force</span><span class="nv"> </span><span class="s">off&quot;</span>
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a><span class="w">  </span><span class="nt">lock_command</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;loginctl</span><span class="nv"> </span><span class="s">lock-session&quot;</span>
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a><span class="w">  </span><span class="nt">gpu_compute_profile_command</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">  </span><span class="c1"># optional: force GPU to compute mode while tasks run</span>
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a><span class="nt">idle</span><span class="p">:</span>
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="w">  </span><span class="nt">detection_method</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;dbus&quot;</span><span class="w">    </span><span class="c1"># dbus, xprintidle</span>
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a><span class="w">  </span><span class="nt">idle_threshold_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a><span class="w">  </span><span class="nt">auto_approve_when_idle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a><span class="w">  </span><span class="nt">auto_approve_timeout_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span><span class="w">  </span><span class="c1"># seconds before auto-approving when user is present</span>
+<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a>
+<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a><span class="nt">queue</span><span class="p">:</span>
+<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a><span class="w">  </span><span class="nt">max_queue_depth</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span>
+<a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a><span class="w">  </span><span class="nt">default_priority</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">3</span>
+<a id="__codelineno-2-43" name="__codelineno-2-43" href="#__codelineno-2-43"></a><span class="w">  </span><span class="nt">session_idle_timeout_seconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">600</span>
+<a id="__codelineno-2-44" name="__codelineno-2-44" href="#__codelineno-2-44"></a>
+<a id="__codelineno-2-45" name="__codelineno-2-45" href="#__codelineno-2-45"></a><span class="nt">auth</span><span class="p">:</span>
+<a id="__codelineno-2-46" name="__codelineno-2-46" href="#__codelineno-2-46"></a><span class="w">  </span><span class="nt">token_file</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/etc/ringmaster/tokens.json&quot;</span>
+</code></pre></div>
+<h3 id="client-configuration">Client Configuration</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># ringmaster-client.yaml</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="nt">server</span><span class="p">:</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">host</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;10.100.102.181&quot;</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8420</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">token_env</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;RINGMASTER_TOKEN&quot;</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nt">proxy</span><span class="p">:</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">11434</span><span class="w">               </span><span class="c1"># local Ollama-compatible endpoint</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="nt">bind</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="nt">webui</span><span class="p">:</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">  </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8421</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">  </span><span class="nt">bind</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;127.0.0.1&quot;</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="nt">notifications</span><span class="p">:</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</code></pre></div>
+<h2 id="gpu-management">GPU Management</h2>
+<h3 id="discovery-and-fingerprinting">Discovery and Fingerprinting</h3>
+<p><code>ringmaster init</code> scans available GPUs and presents them to the user for labeling:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>$ ringmaster init
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Found 2 GPUs:
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  1. AMD Radeon RX 7900 XTX (24GB VRAM, PCI 03:00.0, serial: ABC123)
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  2. AMD Radeon RX 5700 XT (8GB VRAM, PCI 06:00.0, serial: DEF456)
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>Label for GPU 1: primary
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>Role for &#39;primary&#39; [compute/gaming/both]: compute
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>Label for GPU 2: secondary
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>Role for &#39;secondary&#39; [compute/gaming/both]: both
+</code></pre></div>
+<p>The fingerprint is stored using immutable hardware traits:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">fingerprint</span><span class="p">:</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">vendor</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;AMD&quot;</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">model</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Radeon</span><span class="nv"> </span><span class="s">RX</span><span class="nv"> </span><span class="s">7900</span><span class="nv"> </span><span class="s">XTX&quot;</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">vram_mb</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">24576</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">serial</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;ABC123&quot;</span><span class="w">           </span><span class="c1"># if available</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">device_id</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;0x744c&quot;</span><span class="w">        </span><span class="c1"># PCI device ID</span>
+</code></pre></div>
+<p><strong>At startup</strong>, Ringmaster re-scans GPUs and matches each physical device to its
+config entry by fingerprint. The PCI bus address and device index may change
+between boots — Ringmaster follows the card, not the slot.</p>
+<ul>
+<li><strong>Card missing at boot:</strong> Warning notification. Tasks requiring it queue until
+  it reappears.</li>
+<li><strong>Unknown card appears:</strong> Info log. User runs <code>ringmaster gpu add</code> to configure it.</li>
+</ul>
+<h3 id="gpu-allocation-phase-1">GPU Allocation (Phase 1)</h3>
+<p>Phase 1 uses the GPU whose <code>prefer_for</code> list includes <code>"default"</code>. If no GPU
+is marked as default, the first compute-role GPU in config order is used. Tasks
+do not specify GPU preferences. The scheduler is a simple FIFO against this GPU.</p>
+<h3 id="gpu-allocation-phase-2-designed-for-not-implemented">GPU Allocation (Phase 2 — designed for, not implemented)</h3>
+<p>Tasks declare requirements:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">&quot;preferred_gpu&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;primary&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">&quot;minimum_vram_mb&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">16000</span><span class="p">,</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="nt">&quot;fallback_model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llama3.2:3b&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">  </span><span class="nt">&quot;allow_secondary_gpu&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">}</span>
+</code></pre></div>
+<p>The scheduler matches task requirements against GPU inventory. A task that
+<em>needs</em> the big card waits for it. A task that <em>prefers</em> it can fall back to a
+smaller card with a smaller model. When a user is gaming on the primary GPU, the
+scheduler automatically checks whether queued tasks can run on the secondary.</p>
+<p>A model-to-GPU capability map tracks which models fit on which cards:</p>
+<table>
+<thead>
+<tr>
+<th>Model</th>
+<th>Min VRAM</th>
+<th>Preferred GPU</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>mistral-nemo:12b</td>
+<td>12GB</td>
+<td>primary</td>
+</tr>
+<tr>
+<td>qwen2.5-coder:14b</td>
+<td>14GB</td>
+<td>primary</td>
+</tr>
+<tr>
+<td>llama3.2:3b</td>
+<td>4GB</td>
+<td>either</td>
+</tr>
+</tbody>
+</table>
+<h3 id="gpu-allocation-future-designed-for-not-implemented">GPU Allocation (Future — designed for, not implemented)</h3>
+<p>N GPUs, M concurrent tasks. The scheduler becomes a resource allocator matching
+task requirements against a pool of available GPUs. No schema or API changes
+required — the task request format and GPU inventory model already support this.</p>
+<h2 id="task-system">Task System</h2>
+<h3 id="task-types">Task Types</h3>
+<p><strong>Discrete tasks</strong> — defined start and end. Client submits a prompt, gets a
+result, task completes. Queue moves on.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;task_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;discrete&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mistral-nemo:12b&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">&quot;prompt&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Analyze these network findings...&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">&quot;priority&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">&quot;deadline&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-03-29T08:00:00Z&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="nt">&quot;callback_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://10.100.102.50:8080/ringmaster/callback&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">  </span><span class="nt">&quot;client_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;netintel&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">  </span><span class="nt">&quot;unattended_policy&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;run&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="w">  </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="p">}</span>
+</code></pre></div>
+<p><strong>Session tasks</strong> — client opens a session, makes many requests over time. The
+GPU is reserved for the session holder until the session closes or idle-times-out.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;task_type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;session&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;qwen2.5-coder:14b&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="nt">&quot;priority&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">  </span><span class="nt">&quot;session_idle_timeout_seconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">600</span><span class="p">,</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">  </span><span class="nt">&quot;callback_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;http://10.100.102.193:8421/ringmaster/callback&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="nt">&quot;client_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;anny-codium&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">  </span><span class="nt">&quot;unattended_policy&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;run&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">  </span><span class="nt">&quot;metadata&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{}</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="p">}</span>
+</code></pre></div>
+<p>Session lifecycle:
+- Client opens session via the client app (or direct API call)
+- Model loads, GPU is reserved
+- Client sends queries within the session — processed immediately
+- After <code>session_idle_timeout_seconds</code> with no queries, Ringmaster notifies the
+  client that the session is expiring
+- Client can renew (keepalive) or let it close
+- If no keepalive within 60 seconds of the expiry notice, session auto-closes
+- Session closes, GPU released, queue moves on</p>
+<h3 id="task-lifecycle">Task Lifecycle</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>submitted → queued → awaiting_approval → running → completed
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>                         ↓                  ↓
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>                      deferred           failed
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>                         ↓                  ↓
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>                      queued            interrupted
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>                                            ↓
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>                                        queued (re-submitted by client)
+</code></pre></div>
+<ul>
+<li><strong>submitted</strong> — request validated and persisted to SQLite</li>
+<li><strong>queued</strong> — ordered by priority tier, then deadline, then submission time</li>
+<li><strong>awaiting_approval</strong> — user is present at the workstation, desktop notification
+  shown with options: approve, defer (with duration or "until idle"), or let it
+  auto-proceed after configurable timeout</li>
+<li><strong>running</strong> — model loaded on GPU, inference active, systemd sleep inhibitor held</li>
+<li><strong>completed</strong> — result stored, webhook fired to callback URL</li>
+<li><strong>failed</strong> — error stored, webhook fired with error detail</li>
+<li><strong>deferred</strong> — user delayed it. Re-enters queue after specified duration or when
+  idle is detected</li>
+<li><strong>interrupted</strong> — user forced sleep/shutdown, or user cancelled via pause
+  controls. Client can resubmit.</li>
+</ul>
+<p>When no user is present, tasks skip <code>awaiting_approval</code> and go straight from
+<code>queued</code> to <code>running</code>.</p>
+<h3 id="priority">Priority</h3>
+<p>Configurable priority tiers (defaults):</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Category</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Security</td>
+<td>NetIntel, threat analysis</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Interactive</td>
+<td>Code companion, chat</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Analytical</td>
+<td>Financial analysis, reporting</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Housekeeping</td>
+<td>Storage indexing, maintenance</td>
+</tr>
+</tbody>
+</table>
+<p>Within a tier, tasks are ordered by deadline (soonest first), then submission
+time (oldest first).</p>
+<p><strong>No preemption in phase 1.</strong> A running task finishes before the next starts,
+regardless of priority. Priority only affects queue ordering.</p>
+<p><strong>Phase 2</strong> may add preemption: a tier-1 task can interrupt a tier-4 task if the
+tier-4 task supports checkpointing.</p>
+<h3 id="queue-controls">Queue Controls</h3>
+<p>The user is always in control. Ringmaster never locks someone out.</p>
+<p><strong>Phase 1:</strong>
+- <strong>Pause queue</strong> — no new tasks start, current task finishes to completion.
+  <code>ringmaster pause</code> / <code>POST /queue/pause</code> / HA switch.
+- <strong>Resume queue</strong> — processing resumes. <code>ringmaster resume</code> / <code>POST /queue/resume</code>.
+- <strong>Cancel current task</strong> — kills the running task, marks it <code>interrupted</code>, moves
+  to next in queue. <code>ringmaster cancel-current</code> / <code>POST /tasks/current/cancel</code>.
+- <strong>Drain and stop</strong> — finish current task, then pause. For "I want the machine
+  back soon." <code>ringmaster drain</code> / <code>POST /queue/drain</code>.</p>
+<p><strong>Phase 2:</strong>
+- <strong>Pause task</strong> — checkpoint if supported, free the GPU, resume later.
+- <strong>Migrate task</strong> — move a running task to a secondary GPU with a smaller model,
+  freeing the primary card for the user.</p>
+<p><strong>HA integration:</strong> Pause/resume exposed as an HA switch entity. User toggles
+"AI Queue" in the HA dashboard — off means the machine is theirs.</p>
+<h2 id="client-communication">Client Communication</h2>
+<h3 id="webhook-callbacks-primary">Webhook Callbacks (primary)</h3>
+<p>When a task completes, fails, or is interrupted, Ringmaster POSTs to the
+client's <code>callback_url</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="nt">&quot;task_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;abc-123&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;completed&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w">  </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w">  </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mistral-nemo:12b&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w">  </span><span class="nt">&quot;gpu_used&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;primary&quot;</span><span class="p">,</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span><span class="nt">&quot;duration_seconds&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">142</span><span class="p">,</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">  </span><span class="nt">&quot;completed_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-03-29T14:35:00Z&quot;</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="p">}</span>
+</code></pre></div>
+<h3 id="polling-fallback">Polling (fallback)</h3>
+<p>If the client was asleep when the webhook was sent (delivery failed), the client
+polls <code>GET /tasks/{id}</code> on wake. If the task is still running, the client
+registers for the webhook again and waits.</p>
+<p>Webhook delivery retries 3 times with exponential backoff before giving up. The
+result remains available via polling indefinitely (until the client retrieves it
+or the task is cleaned up).</p>
+<h3 id="session-queries">Session Queries</h3>
+<p>For session tasks, the client sends inference requests within the session:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>POST /sessions/{session_id}/generate
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>{
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>  &quot;prompt&quot;: &quot;...&quot;,
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>  &quot;stream&quot;: true
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>}
+</code></pre></div>
+<p>Responses stream back (SSE) or return as a single JSON body, matching Ollama's
+API format so the client app proxy can transparently forward them.</p>
+<h2 id="rest-api">REST API</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a># Task management
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>POST   /tasks                     Submit a task
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>GET    /tasks                     List queue (filterable: status, priority, client_id)
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>GET    /tasks/{id}                Task detail + result
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>PATCH  /tasks/{id}                Update (cancel, reprioritize)
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>DELETE /tasks/{id}                Cancel and remove
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a># Session management
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>POST   /sessions                  Open a session
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>GET    /sessions/{id}             Session status
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>POST   /sessions/{id}/generate    Send inference request within session
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>POST   /sessions/{id}/keepalive   Extend session timeout
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>DELETE /sessions/{id}             Close session, release GPU
+<a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a>
+<a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a># Queue controls
+<a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a>POST   /queue/pause               Pause queue (current task finishes)
+<a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a>POST   /queue/resume              Resume queue
+<a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>POST   /queue/drain               Finish current task, then pause
+<a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>POST   /tasks/current/cancel      Cancel running task
+<a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>
+<a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a># Task approval (from desktop notification actions)
+<a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>POST   /tasks/{id}/approve        User approves a queued task
+<a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>POST   /tasks/{id}/defer          User defers a task (body: duration or &quot;until_idle&quot;)
+<a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>
+<a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a># System status
+<a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>GET    /status                    Machine state, queue depth, current task, user presence
+<a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>GET    /health                    Heartbeat (for HA/clients to check before sleep/WoL)
+<a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>GET    /gpus                      GPU inventory: labels, roles, VRAM, current model, utilization
+<a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>GET    /models                    Available Ollama models + GPU fit info
+<a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>
+<a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a># Authentication
+<a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>POST   /auth/register             Register a new client (returns token)
+<a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>POST   /auth/revoke               Revoke a client token
+</code></pre></div>
+<h2 id="power-management">Power Management</h2>
+<h3 id="workstation-states">Workstation States</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>sleeping ←→ idle ←→ user_active
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>              ↕          ↕
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>          ai_working ← both
+</code></pre></div>
+<ul>
+<li><strong>sleeping</strong> — powered off, WoL-able</li>
+<li><strong>idle</strong> — awake, no user activity, no AI tasks. Safe to sleep.</li>
+<li><strong>user_active</strong> — human at the keyboard. Not safe to sleep.</li>
+<li><strong>ai_working</strong> — running task(s), no user. Not safe to sleep.</li>
+<li><strong>both</strong> — user active AND AI task running.</li>
+</ul>
+<h3 id="wake">Wake</h3>
+<ul>
+<li>Any client can wake the workstation via the configured wake method (WoL, IPMI,
+  smart plug). The client app and CLI include a wake helper.</li>
+<li>After waking, the client polls <code>GET /health</code> until the server is up, then
+  submits work.</li>
+<li>Ringmaster tracks <code>woken_for_work = true</code> when the first task arrives on a
+  boot with no user login.</li>
+</ul>
+<h3 id="sleep-inhibition">Sleep Inhibition</h3>
+<p>Ringmaster holds a <code>systemd-inhibit</code> lock (blocking <code>sleep</code> and <code>shutdown</code>)
+while any task is running. This prevents all sources of suspend/shutdown:
+systemctl, GUI, HA automations, power button, lid close, unattended-upgrades.</p>
+<p><strong>When sleep is requested while tasks are running:</strong></p>
+<p><em>User is at the display:</em>
+Desktop notification: "Ringmaster is running a task for [client]. The machine
+will sleep when it finishes (est. ~N min). [Sleep Now] [OK]"
+- <strong>Sleep Now</strong> — Ringmaster gracefully stops the task (marks <code>interrupted</code>,
+  re-queues), releases the inhibitor, sleeps the machine.
+- <strong>OK</strong> — Ringmaster sets <code>sleep_when_done = true</code>, blanks displays, locks the
+  screen. Machine sleeps after last task.</p>
+<p><em>User is NOT at the display (sleep from HA/phone):</em>
+- Ringmaster holds the sleep via inhibitor.
+- The requesting system (HA) receives: <code>{"sleep": "deferred", "reason":
+  "task_running", "est_completion": "2026-03-29T14:35:00Z"}</code>
+- HA can display workstation state as "finishing work" rather than "on" or "off".
+- Machine sleeps automatically when last task finishes.</p>
+<p><strong>When shutdown/reboot is requested while tasks are running:</strong></p>
+<p>Same pattern. Desktop notification: "Ringmaster is running tasks. [Shut down
+anyway] [Shut down when done]"</p>
+<p>For unattended-upgrades: configure <code>Automatic-Reboot "false"</code> in apt config.
+Ringmaster checks for <code>reboot_pending</code> when the queue drains and reboots then.</p>
+<h3 id="display-and-lock">Display and Lock</h3>
+<p>When sleep is deferred (user said OK, or sleep came from HA while AI is working):
+- Displays blank immediately (<code>display_off_command</code>)
+- Screen locks (<code>lock_command</code>)
+- GPU stays in compute mode for inference
+- If the user moves the mouse, displays wake — Ringmaster does not fight this</p>
+<h3 id="sleep-after-work">Sleep After Work</h3>
+<p>When the last task completes:
+- If <code>sleep_when_done</code> is set (deferred sleep request pending): sleep.
+- If <code>woken_for_work</code> is true and no user has logged in: sleep.
+- If a user is active: stay awake, clear flags.</p>
+<h3 id="gpu-power-state">GPU Power State</h3>
+<p>While tasks are running, Ringmaster optionally sets the GPU to a compute
+performance profile (via <code>gpu_compute_profile_command</code>) to prevent power
+management from downclocking during inference. Profile is restored after the
+last task finishes.</p>
+<h3 id="network-continuity">Network Continuity</h3>
+<p>The workstation must remain network-reachable while locked/display-off. The
+server config should document: disable WiFi power saving, ensure ethernet is
+not affected by screen lock, verify network manager does not drop connections
+on lock.</p>
+<h2 id="notifications">Notifications</h2>
+<h3 id="desktop-user-at-the-workstation">Desktop (user at the workstation)</h3>
+<p>D-Bus desktop notifications with action buttons. Used for:
+- Task needing approval
+- Sleep/shutdown intercepted
+- Task failure
+- Queue completed ("work done, sleeping now")</p>
+<h3 id="push-user-away-from-the-workstation">Push (user away from the workstation)</h3>
+<p>Configurable backend. Phase 1: Home Assistant companion app push notifications.</p>
+<p>Used when:
+- Machine is locked or displays are off
+- Sleep/shutdown was requested remotely
+- A notification has no one to show it to on the local display</p>
+<h3 id="fallback-behavior">Fallback Behavior</h3>
+<p>If no notification channel is reachable (desktop locked, HA down), Ringmaster
+proceeds based on the task's <code>unattended_policy</code>:
+- <code>run</code> — proceed without approval (default for scheduled tasks)
+- <code>wait</code> — hold in queue until a human can approve (default for interactive)
+- <code>skip</code> — drop the task and notify the client via webhook</p>
+<h2 id="authentication">Authentication</h2>
+<p>Clients register with <code>ringmaster register</code> or <code>POST /auth/register</code>. The server
+issues a bearer token stored in a local token file. All API requests require
+the token in the <code>Authorization</code> header.</p>
+<p>Clients must be on the same network or connected via VPN. Ringmaster does not
+expose itself to the public internet.</p>
+<p>Token revocation: <code>ringmaster revoke &lt;client_id&gt;</code> or <code>POST /auth/revoke</code>.</p>
+<h2 id="data-storage">Data Storage</h2>
+<p>SQLite database on the workstation. Tables:</p>
+<ul>
+<li><strong>tasks</strong> — id, task_type, model, prompt, priority, deadline, status,
+  client_id, callback_url, unattended_policy, submitted_at, started_at,
+  completed_at, result, error, gpu_used, duration_seconds, metadata</li>
+<li><strong>sessions</strong> — id, client_id, model, gpu_label, status, opened_at,
+  last_activity_at, idle_timeout_seconds</li>
+<li><strong>gpus</strong> — label, role, fingerprint (JSON), current_model, status</li>
+<li><strong>clients</strong> — client_id, token_hash, registered_at, last_seen</li>
+<li><strong>power_events</strong> — timestamp, event_type, source, detail (audit log)</li>
+</ul>
+<h2 id="phase-boundaries">Phase Boundaries</h2>
+<h3 id="phase-1-mvp">Phase 1 (MVP)</h3>
+<ul>
+<li>Server daemon: FastAPI, SQLite queue, single-GPU scheduling</li>
+<li>GPU init and fingerprinting</li>
+<li>Discrete and session task types</li>
+<li>Priority queue ordering (no preemption)</li>
+<li>Queue pause/resume/cancel/drain</li>
+<li>Sleep/shutdown inhibition with user feedback</li>
+<li>Display blanking + lock on deferred sleep</li>
+<li>Desktop notifications (D-Bus)</li>
+<li>HA push notifications as fallback</li>
+<li>Webhook callbacks with poll fallback</li>
+<li>CLI (submit, queue, status, gpu, pause, resume, cancel-current, drain)</li>
+<li>Client app: Ollama proxy, session management, tray icon, web UI, notifications</li>
+<li>Authentication (token-based)</li>
+<li><code>ringmaster init</code> for GPU setup</li>
+</ul>
+<h3 id="phase-2">Phase 2</h3>
+<ul>
+<li>Multi-GPU scheduling with task-to-GPU matching</li>
+<li>Model-to-GPU capability map</li>
+<li>Task GPU preferences and fallback models</li>
+<li>Task preemption (higher tier interrupts lower)</li>
+<li>Task pause/checkpoint and resume</li>
+<li>Task migration between GPUs</li>
+<li>User gaming on one GPU while AI runs on another</li>
+<li>Additional notification backends (ntfy, Pushover, Matrix)</li>
+</ul>
+<h3 id="future">Future</h3>
+<ul>
+<li>N GPUs, M concurrent tasks (resource pool scheduling)</li>
+<li>Remote coding assistant proxy (Codium/Continue backend)</li>
+<li>Dashboard web UI on the server for monitoring</li>
+<li>Metrics export (Prometheus)</li>
+<li>Task history and analytics</li>
+<li>Plugin system for custom task types beyond Ollama</li>
+</ul>
+<h2 id="technical-decisions">Technical Decisions</h2>
+<ul>
+<li><strong>Language:</strong> Python. Same ecosystem as Ollama clients, cross-platform for
+  client app, team familiarity.</li>
+<li><strong>API framework:</strong> FastAPI. Async, OpenAPI docs for free, lightweight.</li>
+<li><strong>Database:</strong> SQLite. Single-machine, no external dependencies, WAL mode for
+  concurrent reads.</li>
+<li><strong>GPU detection:</strong> ROCm tools (<code>rocm-smi</code>) for AMD. Abstracted behind a
+  provider interface for future CUDA/NVIDIA support.</li>
+<li><strong>Notifications:</strong> <code>desktop-notifier</code> (cross-platform), <code>pystray</code> (tray icon),
+  HA REST API (push).</li>
+<li><strong>Process management:</strong> systemd service on the workstation. Client app runs
+  as user-level systemd service or manual launch.</li>
+<li><strong>Ollama interaction:</strong> HTTP API at <code>localhost:11434</code>. No special client
+  library. Model load/unload via the standard API.</li>
+</ul>
+<h2 id="non-goals">Non-Goals</h2>
+<ul>
+<li>Ringmaster is not an Ollama replacement. It manages the workstation around
+  Ollama, not inference itself.</li>
+<li>Ringmaster is not a cluster scheduler. It is single-machine by design.
+  Multiple machines would each run their own Ringmaster instance (federation
+  is out of scope).</li>
+<li>Ringmaster does not modify AI tools (Codium, Msty, etc.). The client app's
+  Ollama proxy provides transparent compatibility.</li>
+<li>Ringmaster does not manage model downloads or fine-tuning.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
