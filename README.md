@@ -23,15 +23,34 @@ Ringmaster sits between your AI tools and [Ollama](https://ollama.com), managing
 ## Quick start
 
 ```bash
-# Install
-pip install -e ".[dev]"
+# Install in a virtual environment
+git clone https://github.com/JoshWrites/Ringmaster.git
+cd Ringmaster
+python3 -m venv .venv
+source .venv/bin/activate
+pip install .
 
 # Detect GPUs and create config
 ringmaster init
 
+# Bootstrap your first API token
+python3 -c "
+from ringmaster.server.auth import AuthManager
+mgr = AuthManager()
+token = mgr.register('my-workstation')
+mgr.save('tokens.json')
+print(f'Your token: {token}')
+"
+
 # Start the server
-python -m ringmaster.server.run -c ringmaster.yaml
+python3 -m ringmaster.server.run
+
+# In another terminal (with the venv activated)
+export RINGMASTER_TOKEN=<your-token>
+ringmaster status
 ```
+
+For the full setup walkthrough — including manual GPU config, systemd service, remote access, and troubleshooting — see [docs/Anny/installation.md](docs/Anny/installation.md).
 
 ## Configuration
 
@@ -67,39 +86,25 @@ ringmaster cancel-current
 
 Set `RINGMASTER_TOKEN` in your environment to skip `--token` on every call.
 
-## API
+## Documentation
 
-Full REST API at `http://workstation:8420`:
+Full documentation at [joshwrites.github.io/Ringmaster](https://joshwrites.github.io/Ringmaster/).
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/tasks` | POST | Submit a task |
-| `/tasks` | GET | List queue |
-| `/tasks/{id}` | GET | Task detail + result |
-| `/sessions` | POST | Open interactive session |
-| `/sessions/{id}/generate` | POST | Query within session |
-| `/sessions/{id}/keepalive` | POST | Extend session |
-| `/queue/pause` | POST | Pause queue |
-| `/queue/resume` | POST | Resume queue |
-| `/queue/drain` | POST | Finish current, then pause |
-| `/tasks/current/cancel` | POST | Cancel running task |
-| `/status` | GET | Machine state + queue info |
-| `/health` | GET | Heartbeat (no auth required) |
-| `/gpus` | GET | GPU inventory |
-| `/models` | GET | Available Ollama models |
-| `/auth/register` | POST | Register a client |
-
-All endpoints except `/health` require a bearer token.
-
-## Task types
-
-**Discrete** — Submit a prompt, get a result. Task completes, queue moves on.
-
-**Session** — Reserve the GPU for an interactive tool. Send multiple queries without re-queuing. Auto-closes after idle timeout.
+| Guide | Description |
+|-------|-------------|
+| [Quick Start](https://joshwrites.github.io/Ringmaster/quickstart/) | Zero to running in five minutes |
+| [Installation](https://joshwrites.github.io/Ringmaster/guide/installation/) | Full setup with systemd and remote access |
+| [Configuration](https://joshwrites.github.io/Ringmaster/guide/configuration/) | Complete config walkthrough |
+| [Tasks](https://joshwrites.github.io/Ringmaster/guide/tasks/) | Submission, queue control, approval workflow |
+| [Sessions](https://joshwrites.github.io/Ringmaster/guide/sessions/) | Interactive GPU reservations |
+| [Architecture](https://joshwrites.github.io/Ringmaster/architecture/overview/) | How Ringmaster works under the hood |
+| [API Reference](https://joshwrites.github.io/Ringmaster/reference/api/) | All 19 REST endpoints |
+| [CLI Reference](https://joshwrites.github.io/Ringmaster/reference/cli/) | All 9 CLI commands |
+| [Config Reference](https://joshwrites.github.io/Ringmaster/reference/config/) | Every config field with defaults |
 
 ## Phase roadmap
 
-- **Phase 1** (current) — Server daemon, CLI, single-GPU scheduling, sleep/shutdown protection, notifications
+- **Phase 1** (current) — Server daemon, CLI, single-GPU scheduling, sleep/shutdown protection, notifications, sessions
 - **Phase 2** — Multi-GPU scheduling, task-to-GPU matching, preemption, task pause/migrate
 - **Client app** — Cross-platform tray daemon with Ollama proxy for transparent tool integration
 
@@ -107,7 +112,7 @@ All endpoints except `/health` require a bearer token.
 
 - Python 3.11+
 - [Ollama](https://ollama.com) running on the workstation
-- AMD GPU with ROCm (NVIDIA support planned)
+- `rocm-smi` (AMD) or `nvidia-smi` (NVIDIA) for GPU detection
 - Linux (systemd for sleep inhibition, D-Bus for notifications)
 
 ## License
