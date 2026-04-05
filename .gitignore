@@ -32,3 +32,7 @@ ringmaster.yaml
 *.db-shm
 *.db-wal
 *.sqlite3
+
+# MkDocs build output
+site/
+.venv-docs/
