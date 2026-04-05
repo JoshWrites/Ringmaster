@@ -6,7 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStart=/usr/bin/python3 -m ringmaster.server.run -c %h/.config/ringmaster/ringmaster.yaml
-Restart=on-failure
+WorkingDirectory=%h/Documents/Repos/Ringmaster
+Restart=always
 RestartSec=5
 Environment=PYTHONUNBUFFERED=1
 
