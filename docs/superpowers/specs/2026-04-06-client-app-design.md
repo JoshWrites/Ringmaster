@@ -225,6 +225,18 @@ requested → queued → granted → active → closed
 
 Each session has a stable UUID that identifies it throughout its lifecycle, tags all proxied requests, and serves as the key for all scheduling decisions. In the future, this UUID will map to a GPU state snapshot.
 
+### Session Fencing Tokens
+
+Each session is issued a monotonically increasing **fencing token** (integer epoch) when granted. The GPU proxy layer rejects requests carrying an expired token. This prevents the race condition where:
+
+1. Session A is granted, gets token 7
+2. Session A's idle timeout fires, session is closed
+3. Session B is granted, gets token 8
+4. A late request from session A arrives (network delay, slow client)
+5. The server rejects it because token 7 < current token 8
+
+Without fencing, that stale request would be forwarded to Ollama and could corrupt session B's inference context. This pattern is borrowed from distributed lock design (Kleppmann).
+
 ### VRAM Cleanup
 
 When a session closes, the server checks the queue. If no sessions are queued or active, the server unloads the model from VRAM (`keep_alive=0`). This frees the GPU entirely for non-AI use (gaming, rendering, etc.) rather than leaving a model parked in VRAM.
@@ -233,19 +245,79 @@ If another session is queued, the model stays loaded (or the next session's mode
 
 ### Scheduling
 
-**Task classes** — the client declares what kind of work it's doing:
+Scheduling is based on proven patterns from HPC job schedulers (SLURM), OS CPU schedulers (Linux CFS), connection pooling (PgBouncer), and call center queuing (Asterisk).
 
-- **interactive** — human at keyboard, latency-sensitive
-- **batch** — automated, no human waiting, throughput-oriented
-- **scheduled** — cron-triggered, has a time window, flexible
+#### Hard Rule: Interactive Always Preempts
 
-**The client does not set its own priority.** It provides identity and intent. The server decides priority based on:
+**A human at the screen always gets the GPU. No exceptions. No math.**
 
-- Task class
-- Full queue state (who else is waiting, what's running)
-- App manifest (what tools this client has configured)
-- Historical patterns
-- Workstation user presence
+When an interactive session request arrives:
+
+1. If a batch/scheduled task is running → **kill it, auto-requeue it, give the GPU to the human**
+2. If another interactive session is running → queue behind it (one human doesn't preempt another)
+3. If the GPU is idle → grant immediately
+
+Preempted batch/scheduled tasks are automatically requeued at the front of their class with their original priority preserved. The task's app gets a requeue counter so the server can detect tasks that keep getting preempted and adjust scheduling windows (e.g., schedule them during off-hours when interactive users are unlikely).
+
+**Grace period:** Before killing a running task, send a signal/notification and wait a configurable grace period (e.g., 5 seconds) to allow the current inference token to complete. This avoids corrupting Ollama's internal state.
+
+#### Task Classes
+
+The client declares what kind of work it's doing:
+
+- **interactive** — human at keyboard, latency-sensitive. Always preempts batch/scheduled.
+- **batch** — automated, no human waiting, throughput-oriented. Accepts preemption as the contract.
+- **scheduled** — cron-triggered, has a time window, flexible. Same priority as batch but may have deadline constraints.
+
+**The client does not set its own priority.** It provides identity and intent. The server decides scheduling order.
+
+#### Unattended Task Ordering: Shortest-App-First
+
+Within the batch/scheduled class, tasks are ordered by **estimated duration based on historical app performance** — shortest first. The server tracks average task duration per app name:
+
+- `netintel` averages 12 seconds → runs first
+- `file-analysis` averages 45 seconds → runs second
+- `immich` averages 180 seconds → runs last
+
+This knocks out quick wins first, maximizing throughput and minimizing average wait time. New/unknown apps with no history start with a default estimate and the server learns as tasks complete.
+
+Duration tracking is per-app, not per-client/user, because the same app tends to have consistent runtimes regardless of who submitted it.
+
+#### Model Affinity Routing
+
+When choosing the next unattended task to run, **prefer tasks that use the model already loaded in VRAM**. If the GPU has `mistral-nemo:12b` loaded and two tasks are queued — one needing `mistral-nemo:12b` and one needing `llama3:8b` — run the matching one first, even if the other has been waiting longer.
+
+This avoids the 1-3 second model reload penalty and is borrowed from PgBouncer's LIFO connection reuse pattern (reuse the "warm" resource).
+
+Model affinity is a **tiebreaker**, not an override — it doesn't let a low-priority task jump ahead of a higher-priority one just because the model is loaded.
+
+#### Age Factor
+
+Tasks waiting longer get a priority boost. This prevents batch tasks from being starved forever by a steady stream of interactive requests. The age bonus increases linearly with wait time:
+
+- A batch task waiting 5 minutes gets a small boost
+- A batch task waiting 30 minutes gets a significant boost
+- A batch task waiting 2 hours is nearly as urgent as an interactive request
+
+The age factor never lets a batch task **preempt** an interactive session, but it can push a batch task to the front of the unattended queue and ensure it runs in the next idle gap.
+
+#### Fair-Share Decay
+
+The server tracks cumulative GPU-seconds consumed per app over a rolling window. Recent usage weighs more than old usage (half-life of 7 days). An app that consumed 4 hours of GPU time this week gets deprioritized relative to one that consumed 10 minutes.
+
+This prevents a single automated workload from monopolizing the GPU over time. Combined with shortest-app-first, it naturally balances between "run quick tasks first" and "don't let the quick-but-frequent task crowd out everything else."
+
+#### Auto-Requeue on Preemption
+
+When a batch/scheduled task is preempted (killed to make way for an interactive session), it is **automatically requeued** rather than marked as failed:
+
+- Status changes from `running` → `queued` (not `interrupted` or `failed`)
+- Requeue count is incremented
+- Task goes to the front of its priority class
+- The client/webhook is NOT notified of failure — from the client's perspective, the task is still pending
+- When the interactive session ends, the requeued task picks up naturally
+
+Tasks that have been requeued more than a configurable threshold (default: 3) are flagged in the admin digest as chronically preempted.
 
 ### App Manifest
 
