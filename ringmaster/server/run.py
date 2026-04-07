@@ -126,24 +126,22 @@ def main() -> None:
         # Read config from deps after create_app() has wired everything.
         config = deps.get_config()
 
-        # OllamaClient wraps an httpx.AsyncClient; we must close() it at
-        # shutdown to avoid ResourceWarning about unclosed sockets.
         ollama = OllamaClient(base_url=config.ollama.host)
-
-        # SleepInhibitor spawns a systemd-inhibit child process; it is
-        # safe to construct even on non-systemd hosts (logs a warning instead).
         inhibitor = SleepInhibitor()
-
         scheduler = deps.get_scheduler()
-        conn = deps.get_db_conn()
+
+        # Worker gets its own dedicated DB connection — not shared with
+        # HTTP handlers.  This avoids thread-safety issues since the worker
+        # runs as an async task while handlers run in uvicorn's threadpool.
+        from ringmaster import db as db_ops
+        db_path = config_path.parent / "ringmaster.db"
+        worker_conn = db_ops.get_db(str(db_path))
 
         worker = Worker(
-            conn=conn,
+            conn=worker_conn,
             scheduler=scheduler,
             ollama=ollama,
             inhibitor=inhibitor,
-            # Pass deliver_webhook as a callable so Worker never imports the
-            # webhooks module directly — makes the Worker trivially testable.
             deliver_webhook=deliver_webhook,
         )
 
@@ -172,21 +170,15 @@ def main() -> None:
         try:
             await server.serve()
         finally:
-            # Cancel the worker loop and wait for it to finish cleanly.
-            # This ensures in-flight tasks get a chance to log their
-            # CancelledError before the process exits.
             worker_task.cancel()
             try:
                 await worker_task
             except asyncio.CancelledError:
                 pass
 
-            # Release the sleep inhibitor in case the worker held it when
-            # shutdown was triggered (e.g. SIGTERM mid-task).
             inhibitor.release()
-
-            # Close the Ollama HTTP client to avoid ResourceWarning on exit.
             await ollama.close()
+            worker_conn.close()
 
             logger.info("Ringmaster shut down cleanly.")
 

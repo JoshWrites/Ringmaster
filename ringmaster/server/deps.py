@@ -11,11 +11,16 @@ Lifecycle:
   2. ``create_app()`` calls ``set_deps(...)`` once to stash them here.
   3. Route handlers declare ``dep: T = Depends(get_X)`` — FastAPI calls the
      getter and injects the singleton for every request.
+
+DB connections are per-request: each call to ``get_db_conn()`` creates a new
+connection from the factory and yields it as a FastAPI dependency. The
+connection is closed after the request completes.
 """
 
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Callable, Generator
 
 from ringmaster.config import RingmasterConfig
 from ringmaster.scheduler import Scheduler
@@ -26,14 +31,14 @@ from ringmaster.server.auth import AuthManager
 # ---------------------------------------------------------------------------
 
 _config: RingmasterConfig | None = None
-_db_conn: sqlite3.Connection | None = None
+_db_factory: Callable[[], sqlite3.Connection] | None = None
 _scheduler: Scheduler | None = None
 _auth_manager: AuthManager | None = None
 
 
 def set_deps(
     config: RingmasterConfig,
-    db: sqlite3.Connection,
+    db_factory: Callable[[], sqlite3.Connection],
     scheduler: Scheduler,
     auth: AuthManager,
 ) -> None:
@@ -45,13 +50,13 @@ def set_deps(
 
     Args:
         config: The validated RingmasterConfig loaded from YAML.
-        db: An open SQLite connection with WAL mode and FK enforcement enabled.
+        db_factory: A callable that returns a new configured SQLite connection.
         scheduler: The Scheduler instance managing the task queue state machine.
         auth: The AuthManager holding the bearer-token registry.
     """
-    global _config, _db_conn, _scheduler, _auth_manager
+    global _config, _db_factory, _scheduler, _auth_manager
     _config = config
-    _db_conn = db
+    _db_factory = db_factory
     _scheduler = scheduler
     _auth_manager = auth
 
@@ -65,27 +70,33 @@ def get_config() -> RingmasterConfig:
     """Return the application config singleton.
 
     Raises:
-        RuntimeError: If ``set_deps()`` has not been called yet.  This should
-            never happen in production; it indicates a test setup bug if it does.
+        RuntimeError: If ``set_deps()`` has not been called yet.
     """
     if _config is None:
         raise RuntimeError("Dependencies not initialised — call set_deps() first.")
     return _config
 
 
-def get_db_conn() -> sqlite3.Connection:
-    """Return the shared SQLite connection singleton.
+def get_db_conn() -> Generator[sqlite3.Connection, None, None]:
+    """Yield a fresh SQLite connection for this request, closing it afterward.
 
-    The connection is safe to share across concurrent requests because it was
-    opened with ``check_same_thread=False`` and SQLite WAL mode serialises
-    writes internally.
+    Each HTTP request gets its own connection to avoid thread-safety issues
+    with concurrent access to a shared connection.  The connection is closed
+    in the finally block after FastAPI finishes processing the request.
+
+    Yields:
+        A new, configured sqlite3.Connection.
 
     Raises:
         RuntimeError: If ``set_deps()`` has not been called yet.
     """
-    if _db_conn is None:
+    if _db_factory is None:
         raise RuntimeError("Dependencies not initialised — call set_deps() first.")
-    return _db_conn
+    conn = _db_factory()
+    try:
+        yield conn
+    finally:
+        conn.close()
 
 
 def get_scheduler() -> Scheduler:

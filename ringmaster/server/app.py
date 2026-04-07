@@ -136,34 +136,39 @@ async def create_app(
     if db_path is None:
         db_path = config_path.parent / "ringmaster.db"
 
-    # 3. Open DB connection (synchronous sqlite3 — the API layer is sync).
+    # 3. Create initial DB connection for schema init and Scheduler.
+    #    The Scheduler owns this connection for its lifetime (background use).
+    #    HTTP request handlers get per-request connections via the factory.
     conn: sqlite3.Connection = db_ops.get_db(str(db_path))
     db_ops.init_db(conn)
 
-    # 4. Create Scheduler.
+    # 4. Create a factory for per-request connections.
+    db_factory = db_ops.get_db_factory(str(db_path))
+
+    # 5. Create Scheduler with its own dedicated connection.
     scheduler = Scheduler(conn, config.queue)
 
-    # 5. Create AuthManager and load persisted tokens.
+    # 6. Create AuthManager and load persisted tokens.
     auth_manager = AuthManager()
     token_path = Path(config.auth.token_file)
     if not token_path.is_absolute():
         token_path = config_path.parent / token_path
     auth_manager.load(str(token_path))
 
-    # 6. Wire singletons into the deps module.
-    _deps.set_deps(config, conn, scheduler, auth_manager)
+    # 7. Wire singletons into the deps module.
+    _deps.set_deps(config, db_factory, scheduler, auth_manager)
 
-    # 7. Build FastAPI app.
+    # 8. Build FastAPI app.
     app = FastAPI(
         title="Ringmaster",
         description="GPU workstation AI task orchestrator for home networks.",
         version="0.1.0",
     )
 
-    # 8. Auth middleware — runs before every request handler.
+    # 9. Auth middleware — runs before every request handler.
     app.add_middleware(BearerAuthMiddleware)
 
-    # 9. Register routers.
+    # 10. Register routers.
     app.include_router(tasks.router)
     app.include_router(sessions.router)
     app.include_router(queue.router)

@@ -62,6 +62,24 @@ def get_db(path: str) -> sqlite3.Connection:
     return conn
 
 
+def get_db_factory(path: str):
+    """Return a callable that creates new configured database connections.
+
+    Each call to the returned factory opens a fresh connection with WAL mode,
+    row factory, and foreign key enforcement — identical to get_db() but as a
+    new connection each time.  Used for per-request connection isolation.
+
+    Args:
+        path: Filesystem path to the SQLite database file, or ":memory:".
+
+    Returns:
+        A zero-argument callable that returns a new sqlite3.Connection.
+    """
+    def factory() -> sqlite3.Connection:
+        return get_db(path)
+    return factory
+
+
 def init_db(conn: sqlite3.Connection) -> None:
     """Create all tables and indexes if they do not already exist.
 
