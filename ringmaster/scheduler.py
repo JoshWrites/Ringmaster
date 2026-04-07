@@ -30,6 +30,7 @@ Design decisions:
 from __future__ import annotations
 
 import sqlite3
+import threading
 from datetime import datetime, timezone
 
 from ringmaster import db
@@ -71,6 +72,7 @@ class Scheduler:
     def __init__(self, conn: sqlite3.Connection, config: QueueConfig) -> None:
         self._conn = conn
         self._config = config
+        self._lock = threading.Lock()
 
         # In-memory state flags — not persisted to DB (see module docstring).
         self._paused: bool = False
@@ -84,7 +86,8 @@ class Scheduler:
     @property
     def is_paused(self) -> bool:
         """True when the scheduler is paused and will not dispatch new tasks."""
-        return self._paused
+        with self._lock:
+            return self._paused
 
     @property
     def is_draining(self) -> bool:
@@ -93,12 +96,14 @@ class Scheduler:
         In this state the scheduler allows the current task to finish, then
         pauses automatically via on_task_completed().
         """
-        return self._draining
+        with self._lock:
+            return self._draining
 
     @property
     def current_task_id(self) -> str | None:
         """The ID of the task currently being dispatched, or None if idle."""
-        return self._current_task_id
+        with self._lock:
+            return self._current_task_id
 
     # ------------------------------------------------------------------
     # Queue operations
@@ -140,31 +145,32 @@ class Scheduler:
         Raises:
             QueueFullError: When ``queue_depth() >= config.max_queue_depth``.
         """
-        if self.queue_depth() >= self._config.max_queue_depth:
-            raise QueueFullError(
-                f"Queue is full ({self._config.max_queue_depth} tasks waiting). "
-                "Retry after existing tasks are processed."
+        with self._lock:
+            if self.queue_depth() >= self._config.max_queue_depth:
+                raise QueueFullError(
+                    f"Queue is full ({self._config.max_queue_depth} tasks waiting). "
+                    "Retry after existing tasks are processed."
+                )
+
+            # Substitute the configured default when the caller omits a priority.
+            effective_priority = priority if priority is not None else self._config.default_priority
+
+            submitted_at = datetime.now(timezone.utc).isoformat()
+
+            task_id = db.insert_task(
+                self._conn,
+                task_type=task_type,
+                model=model,
+                client_id=client_id,
+                submitted_at=submitted_at,
+                priority=effective_priority,
+                deadline=deadline,
+                prompt=prompt,
+                callback_url=callback_url,
+                unattended_policy=unattended_policy,
+                metadata=metadata,
             )
-
-        # Substitute the configured default when the caller omits a priority.
-        effective_priority = priority if priority is not None else self._config.default_priority
-
-        submitted_at = datetime.now(timezone.utc).isoformat()
-
-        task_id = db.insert_task(
-            self._conn,
-            task_type=task_type,
-            model=model,
-            client_id=client_id,
-            submitted_at=submitted_at,
-            priority=effective_priority,
-            deadline=deadline,
-            prompt=prompt,
-            callback_url=callback_url,
-            unattended_policy=unattended_policy,
-            metadata=metadata,
-        )
-        return task_id
+            return task_id
 
     def next_task(self) -> dict | None:
         """Return the highest-priority queued task, or None if dispatch is blocked.
@@ -181,9 +187,10 @@ class Scheduler:
         Returns:
             A task dict (column name → value), or None.
         """
-        if self._paused:
-            return None
-        return db.get_next_queued_task(self._conn)
+        with self._lock:
+            if self._paused:
+                return None
+            return db.get_next_queued_task(self._conn)
 
     def set_current(self, task_id: str) -> None:
         """Record that *task_id* is the task currently being executed.
@@ -196,7 +203,8 @@ class Scheduler:
         Args:
             task_id: ID of the task about to be dispatched.
         """
-        self._current_task_id = task_id
+        with self._lock:
+            self._current_task_id = task_id
 
     def on_task_completed(self) -> None:
         """Called by the worker when the current task finishes (success or failure).
@@ -208,12 +216,13 @@ class Scheduler:
         The worker is responsible for writing the outcome (result/error) to the
         DB before calling this method.
         """
-        self._current_task_id = None
+        with self._lock:
+            self._current_task_id = None
 
-        # Honour a pending drain request now that the in-flight task is done.
-        if self._draining:
-            self._draining = False
-            self._paused = True
+            # Honour a pending drain request now that the in-flight task is done.
+            if self._draining:
+                self._draining = False
+                self._paused = True
 
     def queue_depth(self) -> int:
         """Return the number of tasks currently in ``'queued'`` status.
@@ -241,7 +250,8 @@ class Scheduler:
         Args:
             task_id: ID of the task to defer.
         """
-        db.update_task_status(self._conn, task_id, "deferred")
+        with self._lock:
+            db.update_task_status(self._conn, task_id, "deferred")
 
     def approve_task(self, task_id: str) -> None:
         """Move a deferred task back to ``'queued'`` status.
@@ -253,7 +263,8 @@ class Scheduler:
         Args:
             task_id: ID of the task to approve.
         """
-        db.update_task_status(self._conn, task_id, "queued")
+        with self._lock:
+            db.update_task_status(self._conn, task_id, "queued")
 
     # ------------------------------------------------------------------
     # Lifecycle controls
@@ -266,7 +277,8 @@ class Scheduler:
         *new* tasks from the queue is halted.  Call resume() to restart
         dispatch.
         """
-        self._paused = True
+        with self._lock:
+            self._paused = True
 
     def resume(self) -> None:
         """Resume task dispatch after a pause or drain.
@@ -275,8 +287,9 @@ class Scheduler:
         normal operation.  If a drain was pending (draining=True, paused=True),
         resume() cancels the drain entirely.
         """
-        self._paused = False
-        self._draining = False
+        with self._lock:
+            self._paused = False
+            self._draining = False
 
     def drain(self) -> None:
         """Gracefully quiesce the scheduler.
@@ -289,12 +302,13 @@ class Scheduler:
         Use drain() before a planned power event (sleep, shutdown) to ensure
         no task is interrupted mid-execution.
         """
-        if self._current_task_id is None:
-            # Safe to pause immediately — no task in flight.
-            self._paused = True
-        else:
-            # Let the current task finish, then pause in on_task_completed().
-            self._draining = True
+        with self._lock:
+            if self._current_task_id is None:
+                # Safe to pause immediately — no task in flight.
+                self._paused = True
+            else:
+                # Let the current task finish, then pause in on_task_completed().
+                self._draining = True
 
     def cancel_current(self) -> str | None:
         """Interrupt the currently running task and clear the current task slot.
@@ -307,10 +321,11 @@ class Scheduler:
         Returns:
             The ID of the cancelled task, or None if no task was running.
         """
-        if self._current_task_id is None:
-            return None
+        with self._lock:
+            if self._current_task_id is None:
+                return None
 
-        task_id = self._current_task_id
-        db.update_task_status(self._conn, task_id, "interrupted")
-        self._current_task_id = None
-        return task_id
+            task_id = self._current_task_id
+            db.update_task_status(self._conn, task_id, "interrupted")
+            self._current_task_id = None
+            return task_id

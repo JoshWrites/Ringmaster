@@ -524,3 +524,117 @@ class TestCurrentTask:
         scheduler.on_task_completed()
 
         assert scheduler.is_paused is False
+
+
+# ---------------------------------------------------------------------------
+# Thread safety
+# ---------------------------------------------------------------------------
+
+import threading
+
+
+class TestThreadSafety:
+    def test_concurrent_submits_produce_unique_ids(self):
+        """Submitting tasks from multiple threads must never produce duplicate IDs
+        or corrupt scheduler state."""
+        conn = make_conn()
+        scheduler = make_scheduler(conn, max_queue_depth=200)
+        results = []
+        errors = []
+
+        def submit_one(i: int) -> None:
+            try:
+                task_id = scheduler.submit_task(
+                    task_type="generate",
+                    model="llama3",
+                    prompt=f"thread-{i}",
+                    priority=3,
+                    client_id="test-client",
+                )
+                results.append(task_id)
+            except Exception as exc:
+                errors.append(exc)
+
+        threads = [threading.Thread(target=submit_one, args=(i,)) for i in range(20)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        assert not errors, f"Unexpected errors: {errors}"
+        assert len(results) == 20
+        assert len(set(results)) == 20, "All task IDs must be unique"
+
+    def test_concurrent_pause_and_submit(self):
+        """Pausing while tasks are being submitted must not crash or produce
+        inconsistent state."""
+        conn = make_conn()
+        scheduler = make_scheduler(conn, max_queue_depth=200)
+        errors = []
+
+        def submit_many() -> None:
+            for i in range(10):
+                try:
+                    scheduler.submit_task(
+                        task_type="generate",
+                        model="llama3",
+                        prompt=f"s-{i}",
+                        priority=3,
+                        client_id="test-client",
+                    )
+                except Exception as exc:
+                    errors.append(exc)
+
+        def toggle_pause() -> None:
+            for _ in range(10):
+                scheduler.pause()
+                scheduler.resume()
+
+        t1 = threading.Thread(target=submit_many)
+        t2 = threading.Thread(target=toggle_pause)
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        assert not errors, f"Unexpected errors: {errors}"
+        assert isinstance(scheduler.is_paused, bool)
+
+    def test_concurrent_cancel_and_complete(self):
+        """cancel_current and on_task_completed racing must not corrupt state."""
+        conn = make_conn()
+        scheduler = make_scheduler(conn)
+
+        task_id = scheduler.submit_task(
+            task_type="generate",
+            model="llama3",
+            prompt="race",
+            priority=3,
+            client_id="test-client",
+        )
+        scheduler.set_current(task_id)
+        db.update_task_status(conn, task_id, "running")
+
+        errors = []
+
+        def do_cancel() -> None:
+            try:
+                scheduler.cancel_current()
+            except Exception as exc:
+                errors.append(exc)
+
+        def do_complete() -> None:
+            try:
+                scheduler.on_task_completed()
+            except Exception as exc:
+                errors.append(exc)
+
+        t1 = threading.Thread(target=do_cancel)
+        t2 = threading.Thread(target=do_complete)
+        t1.start()
+        t2.start()
+        t1.join()
+        t2.join()
+
+        assert not errors, f"Unexpected errors: {errors}"
+        assert scheduler.current_task_id is None
